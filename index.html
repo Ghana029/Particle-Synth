@@ -26,21 +26,21 @@
             background: radial-gradient(circle at center, #080a25 0%, #010208 100%);
         }
         
-        /* 「きめる」ボタンの主張を弱める */
+        /* 「きめる」ボタン */
         #settings-toggle {
-            display: none;
+            display: none; /* 初期はJSで制御するため非表示 */
             position: absolute;
             bottom: 25px;
             right: 20px;
-            background: rgba(10, 15, 30, 0.5); /* 半透明で暗めに */
-            border: 1px solid #0088cc; /* 枠線を少し暗く */
-            color: #b0c4de; /* 文字色を控えめに */
+            background: rgba(10, 15, 30, 0.5);
+            border: 1px solid #0088cc;
+            color: #b0c4de;
             padding: 10px 16px;
-            border-radius: 4px; /* 四角く */
-            font-size: 14px; /* 小さく */
+            border-radius: 4px;
+            font-size: 14px;
             cursor: pointer;
             z-index: 20;
-            box-shadow: 0 0 5px rgba(0, 136, 204, 0.2); /* 影を弱く */
+            box-shadow: 0 0 5px rgba(0, 136, 204, 0.2);
             backdrop-filter: blur(3px);
             transition: 0.3s;
         }
@@ -50,11 +50,11 @@
              border-color: #00f0ff;
         }
 
+        /* 共通パネル設定 */
         .panel {
             position: absolute;
             right: 30px;
             top: 50%;
-            transform: translateY(-50%);
             background: rgba(10, 15, 30, 0.85);
             padding: 25px;
             border-radius: 15px;
@@ -65,7 +65,22 @@
             overflow-y: auto;
             z-index: 10;
             backdrop-filter: blur(5px);
-            transition: opacity 0.3s ease, transform 0.3s ease;
+            /* アニメーション設定 */
+            transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
+        }
+
+        /* PC画面での開閉ステータス */
+        .panel.open {
+            transform: translateY(-50%) translateX(0);
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+        .panel.closed {
+            transform: translateY(-50%) translateX(50px); /* 右にスライドして隠れる */
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
         }
 
         .panel::-webkit-scrollbar {
@@ -84,7 +99,7 @@
             font-size: 16px;
             color: white;
             border: none;
-            border-radius: 4px; /* 四角化 */
+            border-radius: 4px;
             cursor: pointer;
             margin-bottom: 10px;
             font-weight: bold;
@@ -185,34 +200,34 @@
             margin-bottom: 15px;
         }
 
+        /* スマホ画面用の設定 */
         @media (max-width: 768px) {
-            #settings-toggle {
-                display: block;
-            }
             .panel {
                 top: auto;
                 bottom: 0;
                 right: 0;
-                transform: translateY(100%);
                 width: 100%;
                 max-width: 100%;
-                padding: 20px 20px 40px 20px;
-                max-height: 75dvh;
+                padding: 20px 20px max(30px, env(safe-area-inset-bottom)) 20px;
+                max-height: 85dvh;
                 border-radius: 20px 20px 0 0;
                 box-sizing: border-box;
                 border-left: none;
                 border-right: none;
                 border-bottom: none;
-                
-                opacity: 0;
-                pointer-events: none;
-                visibility: hidden;
             }
-            .panel.show {
-                opacity: 1;
-                pointer-events: auto;
-                visibility: visible;
+            /* スマホ画面での開閉ステータス */
+            .panel.open {
                 transform: translateY(0);
+                opacity: 1;
+                visibility: visible;
+                pointer-events: auto;
+            }
+            .panel.closed {
+                transform: translateY(100%); /* 下にスライドして隠れる */
+                opacity: 0;
+                visibility: hidden;
+                pointer-events: none;
             }
         }
     </style>
@@ -224,7 +239,6 @@
     <button id="settings-toggle">きめる</button>
 
     <div class="panel" id="control-panel">
-        <!-- ボタンを四角く統一 -->
         <button id="btn" class="square-btn">はじめる</button>
         <button id="close-btn" class="square-btn">とじる</button>
         
@@ -298,7 +312,6 @@
             </div>
         </div>
         
-        <!-- 中サイズの粒子追加 -->
         <div class="control-group">
             <label>中くらいの粒子の数 (中音)</label>
             <div class="control-row">
@@ -366,7 +379,6 @@
             </div>
         </div>
         
-        <!-- 中サイズのカラー追加 -->
         <div class="control-group">
             <label>中音のカラー（中くらいの粒子）</label>
             <div class="control-row">
@@ -387,7 +399,7 @@
             BOUNDARY_SHAPE: 'circle',
             BOUNDARY_SIZE: 260,       
             SMALL_PARTICLE_COUNT: 10,
-            MEDIUM_PARTICLE_COUNT: 5, // 中サイズ追加
+            MEDIUM_PARTICLE_COUNT: 5,
             LARGE_PARTICLE_COUNT: 10,
             MIN_RADIUS: 4,  
             MAX_RADIUS: 18, 
@@ -401,7 +413,7 @@
             OCTAVES: 3,     
             SOUND_DURATION: 0.70,
             COLOR_HIGH: '#00ffff',
-            COLOR_MID: '#00ffaa', // 中サイズ追加
+            COLOR_MID: '#00ffaa', 
             COLOR_LOW: '#0055ff'
         };
 
@@ -492,16 +504,13 @@
             } : { r: 0, g: 0, b: 0 };
         }
         
-        // 3色補間用に修正
         function interpolateColorMid(colorHigh, colorMid, colorLow, factor) {
             let c1, c2, f;
             if (factor < 0.5) {
-                // 小さい〜中くらい (factor: 0 ~ 0.5)
                 c1 = hexToRgb(colorHigh);
                 c2 = hexToRgb(colorMid);
                 f = factor * 2;
             } else {
-                // 中くらい〜大きい (factor: 0.5 ~ 1.0)
                 c1 = hexToRgb(colorMid);
                 c2 = hexToRgb(colorLow);
                 f = (factor - 0.5) * 2;
@@ -740,7 +749,6 @@
         function setupParticles() {
             particles.length = 0;
             
-            // 小サイズ
             for (let i = 0; i < CONFIG.SMALL_PARTICLE_COUNT; i++) {
                 let x, y;
                 if (CONFIG.BOUNDARY_SHAPE === 'none') {
@@ -754,7 +762,6 @@
                 }
                 particles.push(new Particle(x, y, 'small'));
             }
-            // 中サイズ
             for (let i = 0; i < CONFIG.MEDIUM_PARTICLE_COUNT; i++) {
                 let x, y;
                 if (CONFIG.BOUNDARY_SHAPE === 'none') {
@@ -768,7 +775,6 @@
                 }
                 particles.push(new Particle(x, y, 'medium'));
             }
-            // 大サイズ
             for (let i = 0; i < CONFIG.LARGE_PARTICLE_COUNT; i++) {
                 let x, y;
                 if (CONFIG.BOUNDARY_SHAPE === 'none') {
@@ -845,17 +851,38 @@
             requestAnimationFrame(animate);
         }
 
+        // ==== パネルの開閉制御 ====
+        // PC幅なら最初から開く(true)、スマホ幅なら最初は閉じる(false)
+        let isPanelOpen = window.innerWidth > 768; 
+
+        function updatePanelState() {
+            if (isPanelOpen) {
+                panel.classList.remove('closed');
+                panel.classList.add('open');
+                settingsToggle.style.display = 'none'; // 「きめる」を消す
+            } else {
+                panel.classList.remove('open');
+                panel.classList.add('closed');
+                // 隠れるアニメーションが終わる頃に「きめる」を表示
+                setTimeout(() => {
+                    if (!isPanelOpen) settingsToggle.style.display = 'block';
+                }, 300);
+            }
+        }
+
         settingsToggle.addEventListener('click', () => {
-            panel.classList.add('show');
-            settingsToggle.style.display = 'none'; 
+            isPanelOpen = true;
+            updatePanelState();
         });
 
         closeBtn.addEventListener('click', () => {
-            panel.classList.remove('show');
-            setTimeout(() => {
-                settingsToggle.style.display = 'block'; 
-            }, 300);
+            isPanelOpen = false;
+            updatePanelState();
         });
+
+        // 読み込み時にパネルの初期状態を適用
+        updatePanelState();
+        // ========================
 
         document.getElementById('boundaryShape').addEventListener('change', (e) => {
             CONFIG.BOUNDARY_SHAPE = e.target.value;

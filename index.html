@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Particle Synth</title>
+    <title>Particle Note</title>
     <style>
         body {
             margin: 0;
@@ -26,9 +26,8 @@
             background: radial-gradient(circle at center, #080a25 0%, #010208 100%);
         }
         
-        /* 「きめる」ボタン */
         #settings-toggle {
-            display: none; /* 初期はJSで制御するため非表示 */
+            display: none;
             position: absolute;
             bottom: 25px;
             right: 20px;
@@ -50,7 +49,6 @@
              border-color: #00f0ff;
         }
 
-        /* 共通パネル設定 */
         .panel {
             position: absolute;
             right: 30px;
@@ -65,11 +63,9 @@
             overflow-y: auto;
             z-index: 10;
             backdrop-filter: blur(5px);
-            /* アニメーション設定 */
             transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
         }
 
-        /* PC画面での開閉ステータス */
         .panel.open {
             transform: translateY(-50%) translateX(0);
             opacity: 1;
@@ -77,7 +73,7 @@
             pointer-events: auto;
         }
         .panel.closed {
-            transform: translateY(-50%) translateX(50px); /* 右にスライドして隠れる */
+            transform: translateY(-50%) translateX(50px);
             opacity: 0;
             visibility: hidden;
             pointer-events: none;
@@ -91,7 +87,6 @@
             border-radius: 3px;
         }
         
-        /* 四角いボタンの共通スタイル */
         .square-btn {
             display: block;
             width: 100%;
@@ -200,12 +195,12 @@
             margin-bottom: 15px;
         }
 
-        /* スマホ画面用の設定 */
         @media (max-width: 768px) {
             .panel {
                 top: auto;
                 bottom: 0;
                 right: 0;
+                transform: translateY(100%);
                 width: 100%;
                 max-width: 100%;
                 padding: 20px 20px max(30px, env(safe-area-inset-bottom)) 20px;
@@ -216,7 +211,6 @@
                 border-right: none;
                 border-bottom: none;
             }
-            /* スマホ画面での開閉ステータス */
             .panel.open {
                 transform: translateY(0);
                 opacity: 1;
@@ -224,7 +218,7 @@
                 pointer-events: auto;
             }
             .panel.closed {
-                transform: translateY(100%); /* 下にスライドして隠れる */
+                transform: translateY(100%);
                 opacity: 0;
                 visibility: hidden;
                 pointer-events: none;
@@ -268,11 +262,17 @@
         <div class="control-group">
             <label>音色 (Wave Type)</label>
             <select id="waveType">
-                <option value="water" selected>water?</option>
-                <option value="sine">sine</option>
+                <option value="sine" selected>sine</option>                
+                <option value="bell">bell</option>
+                <option value="vibraphone">obake-no-kaiwa</option>
+                <option value="water">water-shitajiki</option>              
                 <option value="triangle">triangle</option>
                 <option value="sawtooth">sawtooth</option>
                 <option value="square">square</option>
+                <option value="glockenspiel">koro-koro</option>
+                <option value="marimba">saezuri-baainiyoru</option>
+                <option value="glitch">kowareteru?</option>
+                <option value="glass">glass</option>
             </select>
         </div>
 
@@ -407,7 +407,7 @@
             GRAVITY: 0.00,
             BOUNCE: 1.00,
             BASE_VOLUME: 0.08,
-            WAVE_TYPE: 'water',
+            WAVE_TYPE: 'sine', 
             SCALE_TYPE: 'pentatonic',
             BASE_PITCH: 48, 
             OCTAVES: 3,     
@@ -467,7 +467,6 @@
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            
             centerX = canvas.width / 2;
             centerY = canvas.height / 2;
 
@@ -478,14 +477,10 @@
                 const boundarySizeInput = document.getElementById('boundarySize');
                 if (boundarySizeInput) {
                     boundarySizeInput.max = safeMaxBoundary;
-
                     if (CONFIG.BOUNDARY_SIZE > safeMaxBoundary) {
                         CONFIG.BOUNDARY_SIZE = safeMaxBoundary;
                         boundarySizeInput.value = safeMaxBoundary;
-                        
-                        const valDisplay = document.getElementById('boundarySizeVal');
-                        if (valDisplay) valDisplay.textContent = safeMaxBoundary;
-                        
+                        document.getElementById('boundarySizeVal').textContent = safeMaxBoundary;
                         if (particles.length > 0) setupParticles();
                     }
                 }
@@ -497,25 +492,16 @@
 
         function hexToRgb(hex) {
             const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-            return result ? {
-                r: parseInt(result[1], 16),
-                g: parseInt(result[2], 16),
-                b: parseInt(result[3], 16)
-            } : { r: 0, g: 0, b: 0 };
+            return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : { r: 0, g: 0, b: 0 };
         }
         
         function interpolateColorMid(colorHigh, colorMid, colorLow, factor) {
             let c1, c2, f;
             if (factor < 0.5) {
-                c1 = hexToRgb(colorHigh);
-                c2 = hexToRgb(colorMid);
-                f = factor * 2;
+                c1 = hexToRgb(colorHigh); c2 = hexToRgb(colorMid); f = factor * 2;
             } else {
-                c1 = hexToRgb(colorMid);
-                c2 = hexToRgb(colorLow);
-                f = (factor - 0.5) * 2;
+                c1 = hexToRgb(colorMid); c2 = hexToRgb(colorLow); f = (factor - 0.5) * 2;
             }
-            
             const r = Math.round(c1.r + f * (c2.r - c1.r));
             const g = Math.round(c1.g + f * (c2.g - c1.g));
             const b = Math.round(c1.b + f * (c2.b - c1.b));
@@ -524,13 +510,11 @@
 
         function initAudio() {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            
             masterGain = audioCtx.createGain();
             analyser = audioCtx.createAnalyser();
             analyser.fftSize = 2048; 
             bufferLength = analyser.frequencyBinCount;
             dataArray = new Uint8Array(bufferLength);
-
             masterGain.connect(analyser);
             analyser.connect(audioCtx.destination);
         }
@@ -545,39 +529,24 @@
                 } else {
                     this.r = midRadius + Math.random() * (CONFIG.MAX_RADIUS - midRadius); 
                 }
-                
-                this.x = x;
-                this.y = y;
+                this.x = x; this.y = y;
                 this.vx = (Math.random() - 0.5) * 4 * CONFIG.SPEED_MULTIPLIER;
                 this.vy = (Math.random() - 0.5) * 4 * CONFIG.SPEED_MULTIPLIER;
                 this.mass = this.r; 
-                
                 this.factor = (this.r - CONFIG.MIN_RADIUS) / (CONFIG.MAX_RADIUS - CONFIG.MIN_RADIUS);
                 this.updateFrequency();
-
                 this.isColliding = false;
                 this.lastSoundTime = 0; 
             }
-
-            updateFrequency() {
-                this.freq = getFrequencyForFactor(this.factor);
-            }
-
+            updateFrequency() { this.freq = getFrequencyForFactor(this.factor); }
             update() {
-                this.vy += CONFIG.GRAVITY;
-                this.x += this.vx;
-                this.y += this.vy;
-
+                this.vy += CONFIG.GRAVITY; this.x += this.vx; this.y += this.vy;
                 let hitBoundary = false;
-
                 if (CONFIG.BOUNDARY_SHAPE === 'circle') {
-                    const dx = this.x - centerX;
-                    const dy = this.y - centerY;
+                    const dx = this.x - centerX, dy = this.y - centerY;
                     const dist = Math.sqrt(dx * dx + dy * dy);
-
                     if (dist + this.r > CONFIG.BOUNDARY_SIZE) {
-                        const nx = dx / dist;
-                        const ny = dy / dist;
+                        const nx = dx / dist, ny = dy / dist;
                         const dot = this.vx * nx + this.vy * ny;
                         this.vx = (this.vx - 2 * dot * nx) * CONFIG.BOUNCE;
                         this.vy = (this.vy - 2 * dot * ny) * CONFIG.BOUNCE;
@@ -586,59 +555,27 @@
                         hitBoundary = true;
                     }
                 } else if (CONFIG.BOUNDARY_SHAPE === 'square') {
-                    if (this.x - this.r < centerX - CONFIG.BOUNDARY_SIZE) {
-                        this.x = centerX - CONFIG.BOUNDARY_SIZE + this.r;
-                        this.vx = Math.abs(this.vx) * CONFIG.BOUNCE;
-                        hitBoundary = true;
-                    } else if (this.x + this.r > centerX + CONFIG.BOUNDARY_SIZE) {
-                        this.x = centerX + CONFIG.BOUNDARY_SIZE - this.r;
-                        this.vx = -Math.abs(this.vx) * CONFIG.BOUNCE;
-                        hitBoundary = true;
-                    }
-
-                    if (this.y - this.r < centerY - CONFIG.BOUNDARY_SIZE) {
-                        this.y = centerY - CONFIG.BOUNDARY_SIZE + this.r;
-                        this.vy = Math.abs(this.vy) * CONFIG.BOUNCE;
-                        hitBoundary = true;
-                    } else if (this.y + this.r > centerY + CONFIG.BOUNDARY_SIZE) {
-                        this.y = centerY + CONFIG.BOUNDARY_SIZE - this.r;
-                        this.vy = -Math.abs(this.vy) * CONFIG.BOUNCE;
-                        hitBoundary = true;
-                    }
+                    if (this.x - this.r < centerX - CONFIG.BOUNDARY_SIZE) { this.x = centerX - CONFIG.BOUNDARY_SIZE + this.r; this.vx = Math.abs(this.vx) * CONFIG.BOUNCE; hitBoundary = true; }
+                    else if (this.x + this.r > centerX + CONFIG.BOUNDARY_SIZE) { this.x = centerX + CONFIG.BOUNDARY_SIZE - this.r; this.vx = -Math.abs(this.vx) * CONFIG.BOUNCE; hitBoundary = true; }
+                    if (this.y - this.r < centerY - CONFIG.BOUNDARY_SIZE) { this.y = centerY - CONFIG.BOUNDARY_SIZE + this.r; this.vy = Math.abs(this.vy) * CONFIG.BOUNCE; hitBoundary = true; }
+                    else if (this.y + this.r > centerY + CONFIG.BOUNDARY_SIZE) { this.y = centerY + CONFIG.BOUNDARY_SIZE - this.r; this.vy = -Math.abs(this.vy) * CONFIG.BOUNCE; hitBoundary = true; }
                 } else if (CONFIG.BOUNDARY_SHAPE === 'none') {
-                    if (this.x - this.r < 0) {
-                        this.x = this.r;
-                        this.vx = Math.abs(this.vx) * CONFIG.BOUNCE;
-                        hitBoundary = true;
-                    } else if (this.x + this.r > canvas.width) {
-                        this.x = canvas.width - this.r;
-                        this.vx = -Math.abs(this.vx) * CONFIG.BOUNCE;
-                        hitBoundary = true;
-                    }
-
-                    if (this.y - this.r < 0) {
-                        this.y = this.r;
-                        this.vy = Math.abs(this.vy) * CONFIG.BOUNCE;
-                        hitBoundary = true;
-                    } else if (this.y + this.r > canvas.height) {
-                        this.y = canvas.height - this.r;
-                        this.vy = -Math.abs(this.vy) * CONFIG.BOUNCE;
-                        hitBoundary = true;
-                    }
+                    if (this.x - this.r < 0) { this.x = this.r; this.vx = Math.abs(this.vx) * CONFIG.BOUNCE; hitBoundary = true; }
+                    else if (this.x + this.r > canvas.width) { this.x = canvas.width - this.r; this.vx = -Math.abs(this.vx) * CONFIG.BOUNCE; hitBoundary = true; }
+                    if (this.y - this.r < 0) { this.y = this.r; this.vy = Math.abs(this.vy) * CONFIG.BOUNCE; hitBoundary = true; }
+                    else if (this.y + this.r > canvas.height) { this.y = canvas.height - this.r; this.vy = -Math.abs(this.vy) * CONFIG.BOUNCE; hitBoundary = true; }
                 }
 
                 if (hitBoundary && isPlaying && audioCtx) {
                     const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
                     const normalizedSpeed = speed / CONFIG.SPEED_MULTIPLIER;
                     const now = audioCtx.currentTime;
-                    
                     if (normalizedSpeed > 0.5 && now - this.lastSoundTime > 0.05) {
                         triggerSound(this.freq, this.x, normalizedSpeed, 0.4);
                         this.lastSoundTime = now;
                     }
                 }
             }
-
             draw() {
                 const color = interpolateColorMid(CONFIG.COLOR_HIGH, CONFIG.COLOR_MID, CONFIG.COLOR_LOW, this.factor);
                 ctx.beginPath();
@@ -654,24 +591,15 @@
 
         function handleParticleCollisions() {
             const now = audioCtx ? audioCtx.currentTime : 0;
-
             for (let i = 0; i < particles.length; i++) {
                 for (let j = i + 1; j < particles.length; j++) {
-                    const p1 = particles[i];
-                    const p2 = particles[j];
-
-                    const dx = p2.x - p1.x;
-                    const dy = p2.y - p1.y;
+                    const p1 = particles[i], p2 = particles[j];
+                    const dx = p2.x - p1.x, dy = p2.y - p1.y;
                     const dist = Math.sqrt(dx * dx + dy * dy);
-
                     if (dist < p1.r + p2.r) {
-                        const nx = dx / dist;
-                        const ny = dy / dist;
-
-                        const kx = p1.vx - p2.vx;
-                        const ky = p1.vy - p2.vy;
+                        const nx = dx / dist, ny = dy / dist;
+                        const kx = p1.vx - p2.vx, ky = p1.vy - p2.vy;
                         const p = 2 * (nx * kx + ny * ky) / (p1.mass + p2.mass);
-
                         const relativeSpeed = Math.abs(kx * nx + ky * ny);
 
                         p1.vx -= p * p2.mass * nx * CONFIG.BOUNCE;
@@ -680,157 +608,228 @@
                         p2.vy += p * p1.mass * ny * CONFIG.BOUNCE;
 
                         const overlap = (p1.r + p2.r) - dist;
-                        p1.x -= nx * overlap * 0.5;
-                        p1.y -= ny * overlap * 0.5;
-                        p2.x += nx * overlap * 0.5;
-                        p2.y += ny * overlap * 0.5;
+                        p1.x -= nx * overlap * 0.5; p1.y -= ny * overlap * 0.5;
+                        p2.x += nx * overlap * 0.5; p2.y += ny * overlap * 0.5;
 
-                        p1.isColliding = true;
-                        p2.isColliding = true;
+                        p1.isColliding = true; p2.isColliding = true;
 
                         const normalizedRelativeSpeed = relativeSpeed / CONFIG.SPEED_MULTIPLIER;
-                        
                         if (isPlaying && normalizedRelativeSpeed > 0.4 && audioCtx) {
-                            if (now - p1.lastSoundTime > 0.05) {
-                                triggerSound(p1.freq, p1.x, normalizedRelativeSpeed, 0.7);
-                                p1.lastSoundTime = now;
-                            }
-                            if (now - p2.lastSoundTime > 0.05) {
-                                triggerSound(p2.freq, p2.x, normalizedRelativeSpeed, 0.7);
-                                p2.lastSoundTime = now;
-                            }
+                            if (now - p1.lastSoundTime > 0.05) { triggerSound(p1.freq, p1.x, normalizedRelativeSpeed, 0.7); p1.lastSoundTime = now; }
+                            if (now - p2.lastSoundTime > 0.05) { triggerSound(p2.freq, p2.x, normalizedRelativeSpeed, 0.7); p2.lastSoundTime = now; }
                         }
                     }
                 }
             }
         }
 
+        // ==========================================
+        // 全サウンドのトリガー統合
+        // ==========================================
         function triggerSound(freq, posX, intensity, modifier) {
             if (!audioCtx) return;
             if (!isFinite(freq) || freq <= 0) return;
 
-            const osc = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
             const panner = audioCtx.createStereoPanner ? audioCtx.createStereoPanner() : null;
-
             let rawVolume = intensity * CONFIG.BASE_VOLUME * modifier;
             if (!isFinite(rawVolume)) rawVolume = 0.01;
             const volume = Math.min(rawVolume, 0.4);
 
-            if (CONFIG.WAVE_TYPE === 'water') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(freq * 0.5, audioCtx.currentTime); 
-                osc.frequency.exponentialRampToValueAtTime(freq, audioCtx.currentTime + 0.05); 
-                
-                gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-                gainNode.gain.linearRampToValueAtTime(volume * 1.5, audioCtx.currentTime + 0.01);
-                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + CONFIG.SOUND_DURATION);
-            } else {
-                osc.type = CONFIG.WAVE_TYPE;
-                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-
-                gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-                gainNode.gain.linearRampToValueAtTime(volume, audioCtx.currentTime + 0.005);
-                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + CONFIG.SOUND_DURATION);
-            }
-
+            const outputNode = panner ? panner : masterGain;
             if (panner) {
                 const panX = (posX - (canvas.width / 2)) / (canvas.width / 2);
                 panner.pan.setValueAtTime(panX, audioCtx.currentTime);
-                osc.connect(gainNode).connect(panner).connect(masterGain);
-            } else {
-                osc.connect(gainNode).connect(masterGain);
+                panner.connect(masterGain);
             }
 
-            osc.start();
-            osc.stop(audioCtx.currentTime + CONFIG.SOUND_DURATION);
+            const now = audioCtx.currentTime;
+
+            if (CONFIG.WAVE_TYPE === 'bell') {
+                const osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator();
+                const gain1 = audioCtx.createGain(), gain2 = audioCtx.createGain();
+                osc1.type = 'sine'; osc2.type = 'sine';
+                osc1.frequency.setValueAtTime(freq, now);
+                osc2.frequency.setValueAtTime(freq * 2.78, now);
+
+                gain1.gain.setValueAtTime(0, now);
+                gain1.gain.linearRampToValueAtTime(volume, now + 0.005);
+                gain1.gain.exponentialRampToValueAtTime(0.0001, now + CONFIG.SOUND_DURATION);
+
+                gain2.gain.setValueAtTime(0, now);
+                gain2.gain.linearRampToValueAtTime(volume * 0.4, now + 0.005);
+                gain2.gain.exponentialRampToValueAtTime(0.0001, now + (CONFIG.SOUND_DURATION * 0.6));
+
+                osc1.connect(gain1).connect(outputNode); osc2.connect(gain2).connect(outputNode);
+                osc1.start(); osc2.start();
+                osc1.stop(now + CONFIG.SOUND_DURATION); osc2.stop(now + CONFIG.SOUND_DURATION);
+
+            } else if (CONFIG.WAVE_TYPE === 'vibraphone') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const lfo = audioCtx.createOscillator();
+                const lfoGain = audioCtx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, now);
+                
+                // LFOでビブラート（音の揺れ）を作る
+                lfo.type = 'sine';
+                lfo.frequency.setValueAtTime(6, now); // 6Hzの揺れ
+                lfoGain.gain.setValueAtTime(freq * 0.02, now); // 揺れの深さ
+                lfo.connect(lfoGain).connect(osc.frequency);
+
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(volume * 1.2, now + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + CONFIG.SOUND_DURATION * 1.5);
+
+                osc.connect(gain).connect(outputNode);
+                osc.start(); lfo.start();
+                osc.stop(now + CONFIG.SOUND_DURATION * 1.5); lfo.stop(now + CONFIG.SOUND_DURATION * 1.5);
+
+            } else if (CONFIG.WAVE_TYPE === 'glockenspiel') {
+                const osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc1.type = 'sine'; osc2.type = 'sine';
+                
+                osc1.frequency.setValueAtTime(freq, now);
+                osc2.frequency.setValueAtTime(freq * 3.16, now); // 硬い倍音
+
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(volume, now + 0.002); // 非常に鋭いアタック
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + CONFIG.SOUND_DURATION * 0.4); // 短い減衰
+
+                osc1.connect(gain).connect(outputNode);
+                osc2.connect(gain).connect(outputNode);
+                osc1.start(); osc2.start();
+                osc1.stop(now + CONFIG.SOUND_DURATION); osc2.stop(now + CONFIG.SOUND_DURATION);
+
+            } else if (CONFIG.WAVE_TYPE === 'marimba') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                
+                // 打撃感を出すためのピッチエンベロープ（一瞬だけ音程を下げる）
+                osc.frequency.setValueAtTime(freq * 1.5, now);
+                osc.frequency.exponentialRampToValueAtTime(freq, now + 0.02);
+
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(volume, now + 0.005);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + CONFIG.SOUND_DURATION * 0.6);
+
+                osc.connect(gain).connect(outputNode);
+                osc.start(); osc.stop(now + CONFIG.SOUND_DURATION);
+
+
+            } else if (CONFIG.WAVE_TYPE === 'glitch') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                
+                // 周波数をランダムにジャンプさせる
+                osc.frequency.setValueAtTime(freq, now);
+                osc.frequency.setValueAtTime(freq * (0.5 + Math.random()), now + 0.04);
+                
+                // 音をブツ切りにする
+                gain.gain.setValueAtTime(volume, now);
+                gain.gain.setValueAtTime(0, now + 0.02);
+                gain.gain.setValueAtTime(volume * 0.8, now + 0.03);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
+
+                osc.connect(gain).connect(outputNode);
+                osc.start(); osc.stop(now + 0.2);
+
+            } else if (CONFIG.WAVE_TYPE === 'glass') {
+                const osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator(), osc3 = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc1.type = 'sine'; osc2.type = 'sine'; osc3.type = 'sine';
+                
+                osc1.frequency.setValueAtTime(freq, now);
+                osc2.frequency.setValueAtTime(freq * 2.56, now);
+                osc3.frequency.setValueAtTime(freq * 3.41, now);
+
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(volume * 0.6, now + 0.005);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.15); // ガラスの鋭さと脆さ
+
+                osc1.connect(gain).connect(outputNode);
+                osc2.connect(gain).connect(outputNode);
+                osc3.connect(gain).connect(outputNode);
+                osc1.start(); osc2.start(); osc3.start();
+                osc1.stop(now + 0.2); osc2.stop(now + 0.2); osc3.stop(now + 0.2);
+
+            } else if (CONFIG.WAVE_TYPE === 'water') {
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq * 0.5, now); 
+                osc.frequency.exponentialRampToValueAtTime(freq, now + 0.05); 
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(volume * 1.5, now + 0.01);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, now + CONFIG.SOUND_DURATION);
+                osc.connect(gainNode).connect(outputNode);
+                osc.start(); osc.stop(now + CONFIG.SOUND_DURATION);
+
+            } else {
+                // sine, triangle, sawtooth, square
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                osc.type = CONFIG.WAVE_TYPE;
+                osc.frequency.setValueAtTime(freq, now);
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(volume, now + 0.005);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, now + CONFIG.SOUND_DURATION);
+                osc.connect(gainNode).connect(outputNode);
+                osc.start(); osc.stop(now + CONFIG.SOUND_DURATION);
+            }
         }
 
         function setupParticles() {
             particles.length = 0;
-            
             for (let i = 0; i < CONFIG.SMALL_PARTICLE_COUNT; i++) {
                 let x, y;
-                if (CONFIG.BOUNDARY_SHAPE === 'none') {
-                    x = Math.random() * canvas.width;
-                    y = Math.random() * canvas.height;
-                } else {
-                    const angle = Math.random() * Math.PI * 2;
-                    const r = Math.random() * (CONFIG.BOUNDARY_SIZE - 20);
-                    x = centerX + r * Math.cos(angle);
-                    y = centerY + r * Math.sin(angle);
-                }
+                if (CONFIG.BOUNDARY_SHAPE === 'none') { x = Math.random() * canvas.width; y = Math.random() * canvas.height; }
+                else { const angle = Math.random() * Math.PI * 2, r = Math.random() * (CONFIG.BOUNDARY_SIZE - 20); x = centerX + r * Math.cos(angle); y = centerY + r * Math.sin(angle); }
                 particles.push(new Particle(x, y, 'small'));
             }
             for (let i = 0; i < CONFIG.MEDIUM_PARTICLE_COUNT; i++) {
                 let x, y;
-                if (CONFIG.BOUNDARY_SHAPE === 'none') {
-                    x = Math.random() * canvas.width;
-                    y = Math.random() * canvas.height;
-                } else {
-                    const angle = Math.random() * Math.PI * 2;
-                    const r = Math.random() * (CONFIG.BOUNDARY_SIZE - 20);
-                    x = centerX + r * Math.cos(angle);
-                    y = centerY + r * Math.sin(angle);
-                }
+                if (CONFIG.BOUNDARY_SHAPE === 'none') { x = Math.random() * canvas.width; y = Math.random() * canvas.height; }
+                else { const angle = Math.random() * Math.PI * 2, r = Math.random() * (CONFIG.BOUNDARY_SIZE - 20); x = centerX + r * Math.cos(angle); y = centerY + r * Math.sin(angle); }
                 particles.push(new Particle(x, y, 'medium'));
             }
             for (let i = 0; i < CONFIG.LARGE_PARTICLE_COUNT; i++) {
                 let x, y;
-                if (CONFIG.BOUNDARY_SHAPE === 'none') {
-                    x = Math.random() * canvas.width;
-                    y = Math.random() * canvas.height;
-                } else {
-                    const angle = Math.random() * Math.PI * 2;
-                    const r = Math.random() * (CONFIG.BOUNDARY_SIZE - 20);
-                    x = centerX + r * Math.cos(angle);
-                    y = centerY + r * Math.sin(angle);
-                }
+                if (CONFIG.BOUNDARY_SHAPE === 'none') { x = Math.random() * canvas.width; y = Math.random() * canvas.height; }
+                else { const angle = Math.random() * Math.PI * 2, r = Math.random() * (CONFIG.BOUNDARY_SIZE - 20); x = centerX + r * Math.cos(angle); y = centerY + r * Math.sin(angle); }
                 particles.push(new Particle(x, y, 'large'));
             }
         }
 
         function drawWaveform() {
             waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
-            
             if (!analyser) return;
-
             analyser.getByteTimeDomainData(dataArray);
-
             waveCtx.lineWidth = 2;
             waveCtx.strokeStyle = '#00f0ff';
             waveCtx.beginPath();
-
             const sliceWidth = waveCanvas.width * 1.0 / bufferLength;
             let x = 0;
-
             for (let i = 0; i < bufferLength; i++) {
                 const v = dataArray[i] / 128.0;
                 const y = v * waveCanvas.height / 2;
-
-                if (i === 0) {
-                    waveCtx.moveTo(x, y);
-                } else {
-                    waveCtx.lineTo(x, y);
-                }
+                if (i === 0) waveCtx.moveTo(x, y); else waveCtx.lineTo(x, y);
                 x += sliceWidth;
             }
-
             waveCtx.lineTo(waveCanvas.width, waveCanvas.height / 2);
             waveCtx.stroke();
         }
 
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
             if (CONFIG.BOUNDARY_SHAPE !== 'none') {
                 ctx.beginPath();
-                if (CONFIG.BOUNDARY_SHAPE === 'circle') {
-                    ctx.arc(centerX, centerY, CONFIG.BOUNDARY_SIZE, 0, Math.PI * 2);
-                } else if (CONFIG.BOUNDARY_SHAPE === 'square') {
-                    ctx.rect(centerX - CONFIG.BOUNDARY_SIZE, centerY - CONFIG.BOUNDARY_SIZE, CONFIG.BOUNDARY_SIZE * 2, CONFIG.BOUNDARY_SIZE * 2);
-                }
-                
+                if (CONFIG.BOUNDARY_SHAPE === 'circle') ctx.arc(centerX, centerY, CONFIG.BOUNDARY_SIZE, 0, Math.PI * 2);
+                else if (CONFIG.BOUNDARY_SHAPE === 'square') ctx.rect(centerX - CONFIG.BOUNDARY_SIZE, centerY - CONFIG.BOUNDARY_SIZE, CONFIG.BOUNDARY_SIZE * 2, CONFIG.BOUNDARY_SIZE * 2);
                 ctx.strokeStyle = 'rgba(0, 240, 255, 0.6)';
                 ctx.lineWidth = 1;
                 ctx.shadowBlur = 15;
@@ -838,142 +837,55 @@
                 ctx.stroke();
                 ctx.shadowBlur = 0; 
             }
-
             handleParticleCollisions();
-
-            particles.forEach(p => {
-                p.update();
-                p.draw();
-            });
-
+            particles.forEach(p => { p.update(); p.draw(); });
             drawWaveform();
-
             requestAnimationFrame(animate);
         }
 
-        // ==== パネルの開閉制御 ====
-        // PC幅なら最初から開く(true)、スマホ幅なら最初は閉じる(false)
         let isPanelOpen = window.innerWidth > 768; 
 
         function updatePanelState() {
             if (isPanelOpen) {
-                panel.classList.remove('closed');
-                panel.classList.add('open');
-                settingsToggle.style.display = 'none'; // 「きめる」を消す
+                panel.classList.remove('closed'); panel.classList.add('open');
+                settingsToggle.style.display = 'none'; 
             } else {
-                panel.classList.remove('open');
-                panel.classList.add('closed');
-                // 隠れるアニメーションが終わる頃に「きめる」を表示
-                setTimeout(() => {
-                    if (!isPanelOpen) settingsToggle.style.display = 'block';
-                }, 300);
+                panel.classList.remove('open'); panel.classList.add('closed');
+                setTimeout(() => { if (!isPanelOpen) settingsToggle.style.display = 'block'; }, 300);
             }
         }
 
-        settingsToggle.addEventListener('click', () => {
-            isPanelOpen = true;
-            updatePanelState();
-        });
-
-        closeBtn.addEventListener('click', () => {
-            isPanelOpen = false;
-            updatePanelState();
-        });
-
-        // 読み込み時にパネルの初期状態を適用
+        settingsToggle.addEventListener('click', () => { isPanelOpen = true; updatePanelState(); });
+        closeBtn.addEventListener('click', () => { isPanelOpen = false; updatePanelState(); });
         updatePanelState();
-        // ========================
 
-        document.getElementById('boundaryShape').addEventListener('change', (e) => {
-            CONFIG.BOUNDARY_SHAPE = e.target.value;
-            setupParticles();
-        });
-
-        document.getElementById('boundarySize').addEventListener('input', (e) => {
-            CONFIG.BOUNDARY_SIZE = parseInt(e.target.value);
-            document.getElementById('boundarySizeVal').textContent = e.target.value;
-        });
-
+        document.getElementById('boundaryShape').addEventListener('change', (e) => { CONFIG.BOUNDARY_SHAPE = e.target.value; setupParticles(); });
+        document.getElementById('boundarySize').addEventListener('input', (e) => { CONFIG.BOUNDARY_SIZE = parseInt(e.target.value); document.getElementById('boundarySizeVal').textContent = e.target.value; });
         document.getElementById('waveType').addEventListener('change', (e) => CONFIG.WAVE_TYPE = e.target.value);
-
-        document.getElementById('scaleType').addEventListener('change', (e) => {
-            CONFIG.SCALE_TYPE = e.target.value;
-            particles.forEach(p => p.updateFrequency());
-        });
-
-        document.getElementById('basePitch').addEventListener('input', (e) => {
-            CONFIG.BASE_PITCH = parseInt(e.target.value);
-            document.getElementById('basePitchVal').textContent = e.target.value;
-            particles.forEach(p => p.updateFrequency());
-        });
-
-        document.getElementById('octaves').addEventListener('input', (e) => {
-            CONFIG.OCTAVES = parseInt(e.target.value);
-            document.getElementById('octavesVal').textContent = e.target.value;
-            particles.forEach(p => p.updateFrequency());
-        });
-        
-        document.getElementById('smallParticleCount').addEventListener('input', (e) => {
-            CONFIG.SMALL_PARTICLE_COUNT = parseInt(e.target.value);
-            document.getElementById('smallParticleCountVal').textContent = e.target.value;
-            setupParticles();
-        });
-        
-        document.getElementById('mediumParticleCount').addEventListener('input', (e) => {
-            CONFIG.MEDIUM_PARTICLE_COUNT = parseInt(e.target.value);
-            document.getElementById('mediumParticleCountVal').textContent = e.target.value;
-            setupParticles();
-        });
-
-        document.getElementById('largeParticleCount').addEventListener('input', (e) => {
-            CONFIG.LARGE_PARTICLE_COUNT = parseInt(e.target.value);
-            document.getElementById('largeParticleCountVal').textContent = e.target.value;
-            setupParticles();
-        });
-
+        document.getElementById('scaleType').addEventListener('change', (e) => { CONFIG.SCALE_TYPE = e.target.value; particles.forEach(p => p.updateFrequency()); });
+        document.getElementById('basePitch').addEventListener('input', (e) => { CONFIG.BASE_PITCH = parseInt(e.target.value); document.getElementById('basePitchVal').textContent = e.target.value; particles.forEach(p => p.updateFrequency()); });
+        document.getElementById('octaves').addEventListener('input', (e) => { CONFIG.OCTAVES = parseInt(e.target.value); document.getElementById('octavesVal').textContent = e.target.value; particles.forEach(p => p.updateFrequency()); });
+        document.getElementById('smallParticleCount').addEventListener('input', (e) => { CONFIG.SMALL_PARTICLE_COUNT = parseInt(e.target.value); document.getElementById('smallParticleCountVal').textContent = e.target.value; setupParticles(); });
+        document.getElementById('mediumParticleCount').addEventListener('input', (e) => { CONFIG.MEDIUM_PARTICLE_COUNT = parseInt(e.target.value); document.getElementById('mediumParticleCountVal').textContent = e.target.value; setupParticles(); });
+        document.getElementById('largeParticleCount').addEventListener('input', (e) => { CONFIG.LARGE_PARTICLE_COUNT = parseInt(e.target.value); document.getElementById('largeParticleCountVal').textContent = e.target.value; setupParticles(); });
         document.getElementById('speed').addEventListener('input', (e) => {
             const newSpeed = parseFloat(e.target.value);
             const ratio = newSpeed / CONFIG.SPEED_MULTIPLIER;
             CONFIG.SPEED_MULTIPLIER = newSpeed;
-            particles.forEach(p => {
-                p.vx *= ratio;
-                p.vy *= ratio;
-            });
+            particles.forEach(p => { p.vx *= ratio; p.vy *= ratio; });
             document.getElementById('speedVal').textContent = newSpeed.toFixed(1);
         });
-
-        document.getElementById('gravity').addEventListener('input', (e) => {
-            CONFIG.GRAVITY = parseFloat(e.target.value);
-            document.getElementById('gravityVal').textContent = parseFloat(e.target.value).toFixed(2);
-        });
-
-        document.getElementById('bounce').addEventListener('input', (e) => {
-            CONFIG.BOUNCE = parseFloat(e.target.value);
-            document.getElementById('bounceVal').textContent = parseFloat(e.target.value).toFixed(2);
-        });
-
-        document.getElementById('volume').addEventListener('input', (e) => {
-            CONFIG.BASE_VOLUME = parseFloat(e.target.value);
-            document.getElementById('volumeVal').textContent = parseFloat(e.target.value).toFixed(2);
-        });
-
-        document.getElementById('duration').addEventListener('input', (e) => {
-            CONFIG.SOUND_DURATION = parseFloat(e.target.value);
-            document.getElementById('durationVal').textContent = parseFloat(e.target.value).toFixed(2);
-        });
-
+        document.getElementById('gravity').addEventListener('input', (e) => { CONFIG.GRAVITY = parseFloat(e.target.value); document.getElementById('gravityVal').textContent = parseFloat(e.target.value).toFixed(2); });
+        document.getElementById('bounce').addEventListener('input', (e) => { CONFIG.BOUNCE = parseFloat(e.target.value); document.getElementById('bounceVal').textContent = parseFloat(e.target.value).toFixed(2); });
+        document.getElementById('volume').addEventListener('input', (e) => { CONFIG.BASE_VOLUME = parseFloat(e.target.value); document.getElementById('volumeVal').textContent = parseFloat(e.target.value).toFixed(2); });
+        document.getElementById('duration').addEventListener('input', (e) => { CONFIG.SOUND_DURATION = parseFloat(e.target.value); document.getElementById('durationVal').textContent = parseFloat(e.target.value).toFixed(2); });
         document.getElementById('colorHigh').addEventListener('input', (e) => CONFIG.COLOR_HIGH = e.target.value);
         document.getElementById('colorMid').addEventListener('input', (e) => CONFIG.COLOR_MID = e.target.value);
         document.getElementById('colorLow').addEventListener('input', (e) => CONFIG.COLOR_LOW = e.target.value);
 
         btn.addEventListener('click', () => {
-            if (!audioCtx) {
-                initAudio();
-                setupParticles();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
+            if (!audioCtx) { initAudio(); setupParticles(); }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
             isPlaying = !isPlaying;
             btn.textContent = isPlaying ? "やすめる" : "はじめる";
         });

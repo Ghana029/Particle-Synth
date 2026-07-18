@@ -265,25 +265,32 @@
                 <option value="sine" selected>sine</option>                
                 <option value="bell">bell</option>
                 <option value="vibraphone">obake-no-kaiwa</option>
-                <option value="water">water-shitajiki</option>              
+                <option value="water">shitajiki</option>              
                 <option value="triangle">triangle</option>
                 <option value="sawtooth">sawtooth</option>
                 <option value="square">square</option>
                 <option value="glockenspiel">koro-koro</option>
-                <option value="marimba">saezuri-baainiyoru</option>
+                <option value="marimba">saezuri-pichon</option>
                 <option value="glitch">kowareteru?</option>
                 <option value="glass">glass</option>
+                <!-- ↓ここに追加↓ -->
+                <option value="koto">koto</option>
             </select>
         </div>
 
         <div class="control-group">
             <label>音階 (Musical Scale)</label>
             <select id="scaleType">
-                <option value="pentatonic" selected>ペンタトニック</option>
-                <option value="ryukyu">琉球音階</option>
-                <option value="miyako">都節</option>
                 <option value="major">メジャー</option>
                 <option value="minor">マイナー</option>
+                <option value="pentatonic" selected>ペンタトニック</option>
+                <option value="blues">ブルース</option>
+                <option value="mode">ドリアン</option>
+                <option value="prometheus">プロメテウス</option>
+                <option value="doubleHarmonic">ダブルハーモニック</option>
+                <option value="wholeTone">ホールトーン</option>
+                <option value="ryukyu">琉球</option>
+                <option value="miyako">都節</option>
                 <option value="continuous">指定なし・ランダム</option>
             </select>
         </div>
@@ -418,11 +425,16 @@
         };
 
         const SCALES = {
-            pentatonic: [0, 2, 4, 7, 9],
-            ryukyu: [0, 4, 5, 7, 11],
-            miyako: [0, 2, 3, 7, 8],
             major: [0, 2, 4, 5, 7, 9, 11],
             minor: [0, 2, 3, 5, 7, 8, 10],
+            pentatonic: [0, 2, 4, 7, 9],
+            blues: [0, 3, 5, 6, 7, 10], // ブルーノート（マイナーブルース）
+            mode: [0, 2, 3, 5, 7, 9, 10], // モード（代表的なドリアンスケール）
+            prometheus: [0, 2, 4, 6, 9, 10], // プロメテウス音階
+            doubleHarmonic: [0, 1, 4, 5, 7, 8, 11], // ダブルハーモニック（エキゾチックな響き）
+            wholeTone: [0, 2, 4, 6, 8, 10], // ホールトーン（全音音階）
+            ryukyu: [0, 4, 5, 7, 11],
+            miyako: [0, 1, 5, 7, 8], // 都節（より本格的な和風の響きへ修正）
             continuous: null
         };
 
@@ -768,6 +780,38 @@
                 gainNode.gain.exponentialRampToValueAtTime(0.0001, now + CONFIG.SOUND_DURATION);
                 osc.connect(gainNode).connect(outputNode);
                 osc.start(); osc.stop(now + CONFIG.SOUND_DURATION);
+
+                } else if (CONFIG.WAVE_TYPE === 'koto') {
+                const osc1 = audioCtx.createOscillator();
+                const osc2 = audioCtx.createOscillator();
+                const masterKotoGain = audioCtx.createGain();
+                const attackGain = audioCtx.createGain();
+                
+                // 1. 弦の太い響き（ベース）＝ 三角波
+                osc1.type = 'triangle';
+                osc1.frequency.setValueAtTime(freq, now);
+                
+                // 2. 爪で弾いた時の擦れ音（アタック）＝ 鋸歯状波（1オクターブ上）
+                osc2.type = 'sawtooth';
+                osc2.frequency.setValueAtTime(freq * 2, now);
+
+                // 全体の音量コントロール（極めて鋭い立ち上がりと、自然な減衰）
+                masterKotoGain.gain.setValueAtTime(0, now);
+                masterKotoGain.gain.linearRampToValueAtTime(volume, now + 0.002);
+                masterKotoGain.gain.exponentialRampToValueAtTime(0.0001, now + CONFIG.SOUND_DURATION);
+
+                // 爪のアタック音は一瞬（0.1秒）で消えるようにする
+                attackGain.gain.setValueAtTime(0.4, now);
+                attackGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
+
+                // 接続ルーティング
+                osc1.connect(masterKotoGain); // 弦のベース音はそのまま全体ゲインへ
+                osc2.connect(attackGain).connect(masterKotoGain); // アタック音は一瞬で消えるゲインを通ってから全体ゲインへ
+                masterKotoGain.connect(outputNode);
+
+                osc1.start(); osc2.start();
+                osc1.stop(now + CONFIG.SOUND_DURATION);
+                osc2.stop(now + CONFIG.SOUND_DURATION);
 
             } else {
                 // sine, triangle, sawtooth, square
